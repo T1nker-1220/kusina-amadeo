@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
 import ProductForm from "@/components/admin/ProductForm";
 
@@ -8,17 +9,28 @@ interface Product {
   _id: string;
   name: string;
   description: string;
-  price: number;
+  price: string;
   category: string;
   image: string;
   isAvailable: boolean;
+}
+
+interface FormData {
+  name: string;
+  description: string;
+  price: string;
+  category: string;
+  image: string;
+  isAvailable: boolean;
+  [key: string]: string | boolean;
 }
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<FormData | undefined>(undefined);
+  const router = useRouter();
 
   useEffect(() => {
     fetchProducts();
@@ -55,11 +67,19 @@ export default function ProductsPage() {
   };
 
   const handleEdit = (product: Product) => {
-    setEditingProduct(product);
+    const formData: FormData = {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image: product.image,
+      isAvailable: product.isAvailable
+    };
+    setEditingProduct(formData);
     setShowForm(true);
   };
 
-  const handleFormSubmit = async (formData: any) => {
+  const handleFormSubmit = async (formData: FormData) => {
     try {
       const response = await fetch(
         editingProduct ? `/api/admin/products/${editingProduct._id}` : "/api/admin/products",
@@ -73,12 +93,12 @@ export default function ProductsPage() {
       );
 
       if (response.ok) {
-        fetchProducts();
+        await fetchProducts();
         setShowForm(false);
-        setEditingProduct(null);
+        setEditingProduct(undefined);
       }
     } catch (error) {
-      console.error("Error saving product:", error);
+      console.error("Error submitting product:", error);
     }
   };
 
@@ -103,7 +123,7 @@ export default function ProductsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Products</h1>
         <button
           onClick={() => {
-            setEditingProduct(null);
+            setEditingProduct(undefined);
             setShowForm(true);
           }}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
@@ -123,7 +143,7 @@ export default function ProductsPage() {
               <button
                 onClick={() => {
                   setShowForm(false);
-                  setEditingProduct(null);
+                  setEditingProduct(undefined);
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -135,7 +155,7 @@ export default function ProductsPage() {
               initialData={editingProduct}
               onCancel={() => {
                 setShowForm(false);
-                setEditingProduct(null);
+                setEditingProduct(undefined);
               }}
             />
           </div>
@@ -189,7 +209,7 @@ export default function ProductsPage() {
                   <div className="text-sm text-gray-900">{product.category}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">₱{product.price.toFixed(2)}</div>
+                  <div className="text-sm text-gray-900">₱{product.price}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span

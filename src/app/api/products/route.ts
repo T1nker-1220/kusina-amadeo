@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
+import { connectToDatabase } from '@/lib/db';
 import Product from '@/models/Product';
 
 export async function GET(request: Request) {
   try {
-    await connectDB();
+    await connectToDatabase();
 
     // Get URL parameters
     const { searchParams } = new URL(request.url);

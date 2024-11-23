@@ -5,6 +5,15 @@ import { connectToDatabase } from '@/lib/db';
 import Order from '@/models/order';
 import { sendOrderConfirmation } from '@/lib/email';
 
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  addons?: string[];
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -38,7 +47,7 @@ export async function POST(req: Request) {
     // Create the order
     const order = await Order.create({
       userId: session.user.id,
-      items: items.map(item => ({
+      items: items.map((item: OrderItem) => ({
         id: item.id,
         name: item.name,
         price: item.price,
@@ -95,14 +104,17 @@ export async function GET(req: Request) {
     }
 
     await connectToDatabase();
+    
+    // Get orders for the current user
     const orders = await Order.find({ userId: session.user.id })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json(orders);
   } catch (error) {
-    console.error('Get orders error:', error);
+    console.error('Error fetching orders:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch orders. Please try again.' },
+      { error: 'Failed to fetch orders' },
       { status: 500 }
     );
   }

@@ -3,29 +3,39 @@
 import { useState, useEffect } from "react";
 import { FiUpload } from "react-icons/fi";
 
-interface ProductFormProps {
-  onSubmit: (data: any) => void;
-  onCancel: () => void;
-  initialData?: any;
+interface FormData {
+  name: string;
+  description: string;
+  price: string;
+  category: string;
+  image: string;
+  isAvailable: boolean;
+  [key: string]: string | boolean;
 }
 
-export default function ProductForm({ onSubmit, onCancel, initialData }: ProductFormProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    price: "",
-    category: "",
-    image: "",
-    isAvailable: true,
-    ...initialData,
-  });
+interface ProductFormProps {
+  onSubmit: (data: FormData) => void;
+  onCancel: () => void;
+  initialData?: FormData;
+}
 
+const initialFormData: FormData = {
+  name: "",
+  description: "",
+  price: "",
+  category: "",
+  image: "",
+  isAvailable: true,
+};
+
+export default function ProductForm({ onSubmit, onCancel, initialData }: ProductFormProps) {
+  const [formData, setFormData] = useState<FormData>({ ...initialFormData, ...initialData });
   const [imagePreview, setImagePreview] = useState(initialData?.image || "");
   const [uploading, setUploading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: FormData) => ({
       ...prev,
       [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
@@ -47,7 +57,7 @@ export default function ProductForm({ onSubmit, onCancel, initialData }: Product
 
       if (response.ok) {
         const data = await response.json();
-        setFormData((prev) => ({ ...prev, image: data.url }));
+        setFormData((prev: FormData) => ({ ...prev, image: data.url }));
         setImagePreview(data.url);
       }
     } catch (error) {

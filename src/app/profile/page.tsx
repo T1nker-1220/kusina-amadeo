@@ -1,94 +1,132 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import toast from "react-hot-toast";
+
+interface FormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  currentPassword: string;
+  newPassword: string;
+}
 
 export default function ProfilePage() {
-  const { data: session, update } = useSession();
+  const router = useRouter();
+  const { data: session, update, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', content: '' });
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    currentPassword: "",
+    newPassword: "",
+  });
+
+  useEffect(() => {
+    if (session?.user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: session.user.name || "",
+        email: session.user.email || "",
+        phone: session.user.phone || "",
+        address: session.user.address || "",
+      }));
+    }
+  }, [session]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage({ type: '', content: '' });
-
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      address: formData.get('address') as string,
-      currentPassword: formData.get('currentPassword') as string,
-      newPassword: formData.get('newPassword') as string,
-    };
-
-    // Basic validation
-    if (data.phone && !/^\+?[\d\s-]{10,}$/.test(data.phone)) {
-      setMessage({
-        type: 'error',
-        content: 'Please enter a valid phone number',
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    if (data.newPassword && data.newPassword.length < 6) {
-      setMessage({
-        type: 'error',
-        content: 'New password must be at least 6 characters long',
-      });
-      setIsLoading(false);
-      return;
-    }
 
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+      // Validation
+      if (!formData.name?.trim()) {
+        throw new Error("Name is required");
+      }
+
+      if (!formData.email?.trim()) {
+        throw new Error("Email is required");
+      }
+
+      if (!formData.email.includes("@")) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      if (formData.phone && !/^\+?[\d\s-]{10,}$/.test(formData.phone)) {
+        throw new Error("Please enter a valid phone number");
+      }
+
+      if (formData.newPassword && !formData.currentPassword) {
+        throw new Error("Current password is required to set a new password");
+      }
+
+      if (formData.newPassword && formData.newPassword.length < 6) {
+        throw new Error("New password must be at least 6 characters long");
+      }
+
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error);
+        throw new Error(result.error || "Failed to update profile");
       }
 
-      // Update session with new user data including phone and address
+      // Update session with new user data
       await update({
         ...session,
         user: {
           ...session?.user,
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          address: data.address,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
         },
       });
 
-      setMessage({
-        type: 'success',
-        content: 'Profile updated successfully',
-      });
+      // Clear password fields
+      setFormData((prev) => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+      }));
 
-      // Clear password fields after successful update
-      const form = e.currentTarget as HTMLFormElement;
-      form.currentPassword.value = '';
-      form.newPassword.value = '';
+      toast.success("Profile updated successfully");
+      router.refresh();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        content: error instanceof Error ? error.message : 'Failed to update profile',
-      });
+      console.error("Profile update error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update profile");
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
   if (!session?.user) {
+    router.push("/auth/signin");
     return null;
   }
 
@@ -96,87 +134,88 @@ export default function ProfilePage() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
 
-      {message.content && (
-        <div
-          className={`mb-4 p-4 rounded-lg ${
-            message.type === 'success'
-              ? 'bg-green-50 text-green-700'
-              : 'bg-red-50 text-red-700'
-          }`}
-        >
-          {message.content}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6 space-y-6">
+        <div className="space-y-4">
           <h2 className="text-xl font-semibold">Personal Information</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
             <Input
-              label="Full Name"
+              label="Name"
               name="name"
-              type="text"
-              defaultValue={session.user.name || ''}
+              value={formData.name}
+              onChange={handleChange}
               required
+              disabled={isLoading}
             />
-            
+          </div>
+
+          <div>
             <Input
               label="Email"
-              name="email"
               type="email"
-              defaultValue={session.user.email || ''}
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               required
+              disabled={isLoading}
             />
+          </div>
 
+          <div>
             <Input
-              label="Phone Number"
-              name="phone"
+              label="Phone"
               type="tel"
-              defaultValue={session.user.phone || ''}
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
               placeholder="+63 XXX XXX XXXX"
-              pattern="^\+?[\d\s-]{10,}$"
-              title="Please enter a valid phone number"
+              disabled={isLoading}
             />
+          </div>
 
+          <div>
             <Input
-              label="Address"
+              label="Delivery Address"
               name="address"
-              type="text"
-              defaultValue={session.user.address || ''}
-              placeholder="Enter your complete delivery address"
-              required
+              value={formData.address}
+              onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6 space-y-6">
+        <div className="space-y-4">
           <h2 className="text-xl font-semibold">Change Password</h2>
-          <p className="text-sm text-gray-600">Leave blank if you don't want to change your password</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
             <Input
               label="Current Password"
-              name="currentPassword"
               type="password"
+              name="currentPassword"
+              value={formData.currentPassword}
+              onChange={handleChange}
+              disabled={isLoading}
             />
-            
+          </div>
+
+          <div>
             <Input
               label="New Password"
-              name="newPassword"
               type="password"
-              minLength={6}
+              name="newPassword"
+              value={formData.newPassword}
+              onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="pt-4">
           <Button
             type="submit"
-            isLoading={isLoading}
-            className="w-full md:w-auto"
+            className="w-full"
+            disabled={isLoading}
           >
-            Save Changes
+            {isLoading ? "Updating..." : "Update Profile"}
           </Button>
         </div>
       </form>

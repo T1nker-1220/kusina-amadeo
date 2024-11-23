@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiSave } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -15,11 +16,34 @@ export default function SettingsPage() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch("/api/admin/settings");
+        if (!response.ok) {
+          throw new Error("Failed to fetch settings");
+        }
+        const data = await response.json();
+        if (data && Object.keys(data).length > 0) {
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+        setError("Failed to load settings");
+        toast.error("Failed to load settings");
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
+    setError(null);
 
     try {
       const response = await fetch("/api/admin/settings", {
@@ -30,12 +54,17 @@ export default function SettingsPage() {
         body: JSON.stringify(settings),
       });
 
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+      if (!response.ok) {
+        throw new Error("Failed to save settings");
       }
+
+      setSuccess(true);
+      toast.success("Settings saved successfully!");
+      setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       console.error("Error saving settings:", error);
+      setError("Failed to save settings");
+      toast.error("Failed to save settings");
     } finally {
       setLoading(false);
     }
@@ -153,6 +182,9 @@ export default function SettingsPage() {
         <div className="flex items-center justify-end space-x-3">
           {success && (
             <span className="text-green-600 text-sm">Settings saved successfully!</span>
+          )}
+          {error && (
+            <span className="text-red-600 text-sm">{error}</span>
           )}
           <button
             type="submit"

@@ -1,8 +1,8 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 export function LoginForm() {
@@ -10,7 +10,6 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState("customer"); // "customer" or "admin"
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,18 +29,8 @@ export function LoginForm() {
         return;
       }
 
-      // Check if admin login
-      if (userType === "admin" && !email.includes("kusinadeamadeo@gmail.com")) {
-        setError("Invalid admin credentials");
-        return;
-      }
-
-      // Redirect based on user type
-      if (userType === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/");
-      }
+      router.push("/");
+      router.refresh();
     } catch (error) {
       setError("An error occurred. Please try again.");
     } finally {
@@ -51,32 +40,6 @@ export function LoginForm() {
 
   return (
     <div>
-      {/* User Type Selection */}
-      <div className="flex space-x-4 mb-8">
-        <button
-          type="button"
-          onClick={() => setUserType("customer")}
-          className={`flex-1 py-2 px-4 rounded-md ${
-            userType === "customer"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          Customer
-        </button>
-        <button
-          type="button"
-          onClick={() => setUserType("admin")}
-          className={`flex-1 py-2 px-4 rounded-md ${
-            userType === "admin"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          Admin
-        </button>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
@@ -136,19 +99,17 @@ export function LoginForm() {
           </button>
         </div>
 
-        {userType === "customer" && (
-          <div className="text-sm text-center">
-            <p className="text-gray-600">
-              Don't have an account?{" "}
-              <Link
-                href="/register"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                Register here
-              </Link>
-            </p>
-          </div>
-        )}
+        <div className="text-sm text-center">
+          <p className="text-gray-600">
+            Don't have an account?{" "}
+            <Link
+              href="/auth/register"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              Register here
+            </Link>
+          </p>
+        </div>
       </form>
     </div>
   );

@@ -13,12 +13,18 @@ export interface IOrderItem {
 }
 
 export interface IOrder {
+  _id?: string;
   userId: string;
   items: IOrderItem[];
   total: number;
   paymentMethod: 'gcash' | 'cod';
   paymentStatus: 'pending' | 'processing' | 'paid' | 'failed';
   orderStatus: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+  deliveryInfo?: {
+    address: string;
+    contact: string;
+    instructions?: string;
+  };
   paymentDetails?: {
     provider: string;
     accountNumber: string;
@@ -81,6 +87,21 @@ const paymentDetailsSchema = new mongoose.Schema({
   },
 });
 
+const deliveryInfoSchema = new mongoose.Schema({
+  address: {
+    type: String,
+    required: true,
+  },
+  contact: {
+    type: String,
+    required: true,
+  },
+  instructions: {
+    type: String,
+    required: false,
+  },
+});
+
 const orderSchema = new mongoose.Schema<IOrder>(
   {
     userId: {
@@ -116,6 +137,10 @@ const orderSchema = new mongoose.Schema<IOrder>(
       type: String,
       enum: ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'],
       default: 'pending',
+    },
+    deliveryInfo: {
+      type: deliveryInfoSchema,
+      required: false,
     },
     paymentDetails: {
       type: paymentDetailsSchema,

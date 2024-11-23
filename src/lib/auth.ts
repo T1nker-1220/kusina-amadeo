@@ -1,9 +1,8 @@
 import { NextAuthOptions } from 'next-auth';
-import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import User from '@/models/user';
 import { connectToDatabase } from '@/lib/db';
+import User from '@/models/user';
 
 declare module 'next-auth' {
   interface Session {
@@ -21,22 +20,36 @@ declare module 'next-auth' {
     email: string;
     name: string;
     role: string;
+    phone?: string;
+    address?: string;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
+    email: string;
+    name: string;
     role: string;
+    phone?: string;
+    address?: string;
   }
 }
 
 export const authOptions: NextAuthOptions = {
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/login',
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   providers: [
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        email: { label: 'Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
@@ -44,65 +57,65 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        await connectToDatabase();
+        try {
+          await connectToDatabase();
 
-        const user = await User.findOne({ email: credentials.email.toLowerCase() });
+          const user = await User.findOne({ email: credentials.email.toLowerCase() });
 
-        if (!user || !user.password) {
-          throw new Error('Invalid credentials');
+          if (!user) {
+            throw new Error('No user found with this email');
+          }
+
+          const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+
+          if (!passwordMatch) {
+            throw new Error('Invalid password');
+          }
+
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            phone: user.phone,
+            address: user.address,
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
+          throw error;
         }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          throw new Error('Invalid credentials');
-        }
-
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
       },
     }),
   ],
   callbacks: {
-    jwt: async ({ token, user }) => {
-      if (user) {
-        token.role = user.role;
-        token.id = user.id;
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === 'update' && session) {
+        return { ...token, ...session.user };
       }
+      
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = user.role;
+        token.phone = user.phone;
+        token.address = user.address;
+      }
+      
       return token;
     },
-    session: async ({ session, token }) => {
-      if (session?.user) {
-        try {
-          await connectToDatabase();
-          const dbUser = await User.findById(token.id);
-          if (dbUser) {
-            session.user.id = token.id as string;
-            session.user.role = dbUser.role;
-            session.user.phone = dbUser.phone || '';
-            session.user.address = dbUser.address || '';
-          }
-        } catch (error) {
-          console.error('Error fetching user data for session:', error);
-        }
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.name = token.name;
+        session.user.role = token.role;
+        session.user.phone = token.phone as string | undefined;
+        session.user.address = token.address as string | undefined;
       }
       return session;
     },
   },
-  pages: {
-    signIn: '/login',
-    signOut: '/login',
-    error: '/login',
-  },
-  session: {
-    strategy: 'jwt',
-  },
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
 };

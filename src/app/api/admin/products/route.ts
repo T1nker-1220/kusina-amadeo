@@ -1,7 +1,8 @@
 import { getServerSession } from "next-auth";
+import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
-import Product from "@/models/product";
+import Product from "@/models/Product";
 
 export async function GET() {
   const session = await getServerSession();
@@ -19,7 +20,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const session = await getServerSession();
   if (!session?.user?.email?.includes("kusinadeamadeo@gmail.com")) {
     return new NextResponse("Unauthorized", { status: 401 });

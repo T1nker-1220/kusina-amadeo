@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import './globals.css';
 import AuthProvider from '@/providers/AuthProvider';
 import { CartProvider } from '@/contexts/CartContext';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className={inter.variable}>
         <AuthProvider>
           <CartProvider>
+            <Toaster position="top-right" />
             <Header />
             <main className="min-h-screen">
               {children}

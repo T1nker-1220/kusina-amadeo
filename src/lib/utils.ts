@@ -1,3 +1,6 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
 /**
  * Formats a number as a Philippine Peso price string
  * @param amount - The amount to format
@@ -12,16 +15,26 @@ export function formatPrice(amount: number): string {
 }
 
 /**
- * Formats a date string to a localized date
- * @param dateString - The date string to format
+ * Formats a date string or Date object to a localized date
+ * @param date - The date to format (string or Date object)
  * @returns A formatted date string
  */
-export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-PH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+export function formatDate(date: string | Date): string {
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date:', date);
+      return 'Invalid date';
+    }
+    return dateObj.toLocaleDateString('en-PH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date';
+  }
 }
 
 /**
@@ -82,4 +95,11 @@ export function calculateDeliveryFee(distance: number): number {
   
   const additionalDistance = Math.ceil(distance - 3);
   return baseFee + (additionalDistance * additionalFeePerKm);
+}
+
+/**
+ * Merges class names with Tailwind CSS classes
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
