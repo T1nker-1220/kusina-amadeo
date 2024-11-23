@@ -1,0 +1,37 @@
+{
+  "name": "kusina-de-amadeo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "ts-node -r ./scripts/register.ts -P ./scripts/tsconfig.json scripts/seed-products.ts"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.1.1",
+    "@react-pdf/renderer": "^4.1.4",
+    "@types/bcryptjs": "^2.4.6",
+    "autoprefixer": "^10.4.16",
+    "bcryptjs": "^2.4.3",
+    "mongoose": "^8.0.3",
+    "next": "14.0.4",
+    "next-auth": "^4.24.10",
+    "nodemailer": "^6.9.16",
+    "postcss": "^8.4.32",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.0.4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.3.3"
+  }
+}
