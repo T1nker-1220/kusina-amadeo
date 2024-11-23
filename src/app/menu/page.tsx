@@ -1,19 +1,22 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import ProductCard from '@/components/ProductCard';
-
-const CATEGORIES = ['All', 'Budget Meals', 'Silog Meals', 'Ala Carte', 'Beverages'];
+import { CATEGORIES, PRICE_RANGE, PRODUCT_STATUS } from '@/lib/constants';
 
 export default function MenuPage() {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [availability, setAvailability] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, minPrice, maxPrice, availability]);
 
   const fetchProducts = async () => {
     try {
@@ -25,6 +28,15 @@ export default function MenuPage() {
       }
       if (searchQuery) {
         params.append('search', searchQuery);
+      }
+      if (minPrice) {
+        params.append('minPrice', minPrice);
+      }
+      if (maxPrice) {
+        params.append('maxPrice', maxPrice);
+      }
+      if (availability !== 'all') {
+        params.append('availability', availability);
       }
       
       if (params.toString()) {
@@ -53,6 +65,23 @@ export default function MenuPage() {
     setLoading(true);
   };
 
+  const handlePriceChange = (type: 'min' | 'max', value: string) => {
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      if (type === 'min') setMinPrice(value);
+      else setMaxPrice(value);
+      setLoading(true);
+    }
+  };
+
+  const clearFilters = () => {
+    setSelectedCategory('All');
+    setSearchQuery('');
+    setMinPrice('');
+    setMaxPrice('');
+    setAvailability('all');
+    setLoading(true);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Our Menu</h1>
@@ -74,15 +103,87 @@ export default function MenuPage() {
         ))}
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-8">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={handleSearch}
-          placeholder="Search menu items..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-        />
+      {/* Search and Filter Controls */}
+      <div className="mb-8 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search Bar */}
+          <div className="flex-1">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearch}
+              placeholder="Search menu items..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+          
+          {/* Filter Toggle Button */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
+          
+          {/* Clear Filters Button */}
+          {(selectedCategory !== 'All' || searchQuery || minPrice || maxPrice || availability !== 'all') && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className="p-4 bg-gray-50 rounded-lg space-y-4">
+            {/* Price Range */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Min Price (₱)
+                </label>
+                <input
+                  type="text"
+                  value={minPrice}
+                  onChange={(e) => handlePriceChange('min', e.target.value)}
+                  placeholder={PRICE_RANGE.MIN.toString()}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Max Price (₱)
+                </label>
+                <input
+                  type="text"
+                  value={maxPrice}
+                  onChange={(e) => handlePriceChange('max', e.target.value)}
+                  placeholder={PRICE_RANGE.MAX.toString()}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Availability Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Availability
+              </label>
+              <select
+                value={availability}
+                onChange={(e) => setAvailability(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="all">All Items</option>
+                <option value={PRODUCT_STATUS.AVAILABLE}>Available Only</option>
+                <option value={PRODUCT_STATUS.UNAVAILABLE}>Unavailable Only</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Product Grid */}

@@ -9,11 +9,17 @@ import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({
   subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif'],
   variable: '--font-inter',
 });
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  fallback: ['Georgia', 'Times New Roman', 'serif'],
   variable: '--font-playfair-display',
 });
 
@@ -28,8 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+      <body className="font-sans">
         <AuthProvider>
           <CartProvider>
             <Toaster position="top-right" />
